@@ -1,0 +1,7 @@
+Flask
+werkzeug
+pandas
+python-docx
+reportlab
+pdf2docx
+docx2pdf
