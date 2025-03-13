@@ -13,6 +13,9 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from pdf2docx import Converter
 from docx2pdf import convert
+import subprocess
+
+# PAKET DÖNÜŞÜMLERİNDE KENDİ LOKALİMDE FARKLI LINUX DA FARKLI PAKET KULLANIYORUM DİKKAT ET
 
 # Dosya Dönüştürme Servisi sınıfı
 class FileConverterService:
@@ -29,6 +32,7 @@ class FileConverterService:
             'excel_to_json',
             'excel_to_docx',
             'excel_to_pdf',
+            'csv_to_excel',  # Yeni eklenen dönüşüm türü
         ]
     
     # PDF'den DOCX'e dönüşüm
@@ -38,14 +42,73 @@ class FileConverterService:
         cv.close()
         return output_path
     
-    # DOCX'den PDF'e dönüşüm
     def docx_to_pdf(self, input_path, output_path):
-        convert(input_path, output_path)
-        return output_path
+        try:
+            # Girdi dizini ve dosya adını al
+            input_dir = os.path.dirname(input_path)
+            input_filename = os.path.splitext(os.path.basename(input_path))[0]
+            
+            # LibreOffice ile dönüşüm
+            result = subprocess.run([
+                'libreoffice', 
+                '--headless', 
+                '--convert-to', 
+                'pdf', 
+                '--outdir', 
+                input_dir,  # Aynı dizine kaydet
+                input_path
+            ], capture_output=True, text=True, check=True)
+            
+            # Olası PDF dosya yolları
+            possible_pdf_paths = [
+                os.path.join(input_dir, f"{input_filename}.pdf"),  # Linux tarzı
+                os.path.join(input_dir, "input.pdf"),  # Alternatif
+                os.path.join(input_dir, f"{os.path.basename(input_path)}.pdf")  # Başka bir alternatif
+            ]
+            
+            # PDF dosyasını bul ve hedef konuma kopyala
+            for pdf_path in possible_pdf_paths:
+                if os.path.exists(pdf_path):
+                    shutil.copy(pdf_path, output_path)
+                    return output_path
+            
+            # Eğer hiçbir PDF bulunamazsa detaylı hata mesajı
+            raise FileNotFoundError(f"PDF dosyası oluşturulamadı. LibreOffice çıktısı: {result.stdout}")
+        
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"LibreOffice dönüşüm hatası: {e.stderr}")
+        except Exception as e:
+            raise Exception(f"Dönüşüm sırasında hata oluştu: {str(e)}")
+    
+    # CSV'den Excel'e dönüşüm
+    def csv_to_excel(self, input_path, output_path):
+        try:
+            # CSV dosyasını oku (encoding ve ayırıcı karakteri otomatik tespit etmeye çalış)
+            try:
+                # İlk olarak UTF-8 encoding ile dene
+                df = pd.read_csv(input_path, encoding='utf-8')
+            except UnicodeDecodeError:
+                # UTF-8 çalışmazsa ISO-8859-1 encoding ile dene
+                df = pd.read_csv(input_path, encoding='ISO-8859-1')
+            except Exception:
+                # Farklı ayırıcı karakteri olan CSV dosyalarını tespit et
+                try:
+                    df = pd.read_csv(input_path, encoding='utf-8', sep=';')
+                except:
+                    df = pd.read_csv(input_path, encoding='ISO-8859-1', sep=';')
+            
+            # Excel'e kaydet (varsayılan olarak ilk sayfa adı "CSV Data" olacak)
+            with pd.ExcelWriter(output_path) as writer:
+                df.to_excel(writer, sheet_name='CSV Data', index=False)
+            
+            return output_path
+        
+        except Exception as e:
+            raise Exception(f"CSV'den Excel'e dönüşüm sırasında hata oluştu: {str(e)}")
     
     # DOCX'den JSON'a dönüşüm
     def docx_to_json(self, input_path, output_path):
-        # Word belgesini oku
+        # Word belgesini UTF-8 encoding ile oku
         doc = Document(input_path)
         
         # JSON için veri yapısı oluştur
@@ -62,9 +125,9 @@ class FileConverterService:
                 table_rows.append(row_data)
             data["tables"].append(table_rows)
         
-        # JSON olarak kaydet
+        # JSON olarak UTF-8 ile kaydet
         with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+            json.dump(data, f, indent=4, ensure_ascii=False)  # Türkçe karakterleri korumak için
         
         return output_path
     
@@ -105,7 +168,7 @@ class FileConverterService:
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
         
         return output_path
-    
+        
     # JSON'dan Excel'e dönüşüm
     def json_to_excel(self, input_path, output_path):
         # JSON dosyasını oku
@@ -134,18 +197,18 @@ class FileConverterService:
     
     # JSON'dan DOCX'e dönüşüm
     def json_to_docx(self, input_path, output_path):
-        # JSON dosyasını oku
+        # JSON dosyasını UTF-8 encoding ile oku
         with open(input_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         # Word belgesi oluştur
         doc = Document()
-        doc.add_heading('JSON Data', 0)
+        doc.add_heading('JSON Verisi', 0)
         
         # JSON verilerini işle
         self._add_json_to_docx(doc, data)
         
-        # Belgeyi kaydet
+        # Belgeyi UTF-8 ile kaydet
         doc.save(output_path)
         return output_path
     
@@ -206,8 +269,8 @@ class FileConverterService:
     
     # Excel'den JSON'a dönüşüm
     def excel_to_json(self, input_path, output_path):
-        # Excel dosyasını oku
-        excel = pd.ExcelFile(input_path)
+        # Excel dosyasını UTF-8 ile okuma
+        excel = pd.ExcelFile(input_path, encoding='utf-8')
         
         # Sonuç sözlüğü oluştur
         result = {}
@@ -215,13 +278,12 @@ class FileConverterService:
         # Her sayfayı işle
         for sheet in excel.sheet_names:
             df = pd.read_excel(excel, sheet)
-            result[sheet] = json.loads(df.to_json(orient='records', date_format='iso'))
+            # Türkçe karakterleri koruyarak JSON'a dönüştür
+            result[sheet] = json.loads(df.to_json(orient='records', date_format='iso', force_ascii=False))
         
-        # JSON dosyasına kaydet
+        # JSON dosyasına UTF-8 ile kaydet
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(result, f, indent=4, ensure_ascii=False)
-        
-        return output_path
     
     # Excel'den DOCX'e dönüşüm
     def excel_to_docx(self, input_path, output_path):
@@ -281,6 +343,7 @@ class FileConverterService:
             row_height = 20
             col_widths = []
             
+            # Sütun genişliklerini hesapla
             # Sütun genişliklerini hesapla
             for col in df.columns:
                 max_width = max(

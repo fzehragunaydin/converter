@@ -291,6 +291,10 @@
                             <option value="excel_to_pdf">Excel'den PDF'e</option>
                         </optgroup>
                         
+                        <optgroup label="CSV Dönüşümleri">
+                            <option value="csv_to_excel">CSV'den Excel'e</option>
+                        </optgroup>
+                        
                     </select>
                 </div>
                 
@@ -408,6 +412,7 @@
                     'docx': ['docx', 'doc'],
                     'json': ['json'],
                     'excel': ['xlsx', 'xls'],
+                    'csv': ['csv']
                 };
                 
                 if (!formatMappings[sourceFormat].includes(fileExt)) {
