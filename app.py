@@ -14,13 +14,14 @@ from reportlab.pdfgen import canvas
 from pdf2docx import Converter
 from docx2pdf import convert
 import subprocess
+from xml.etree.ElementTree import Element, SubElement, tostring
+import xml.dom.minidom
 
 # PAKET DÖNÜŞÜMLERİNDE KENDİ LOKALİMDE FARKLI LINUX DA FARKLI PAKET KULLANIYORUM DİKKAT ET
 
 # Dosya Dönüştürme Servisi sınıfı
 class FileConverterService:
     def __init__(self):
-        # Desteklenen dönüşüm türlerinin listesi
         self.supported_conversions = [
             'pdf_to_docx',
             'docx_to_pdf',
@@ -32,9 +33,9 @@ class FileConverterService:
             'excel_to_json',
             'excel_to_docx',
             'excel_to_pdf',
-            'csv_to_excel',  # Yeni eklenen dönüşüm türü
+            'csv_to_excel',
+            'excel_to_xml',  
         ]
-    
     # PDF'den DOCX'e dönüşüm
     def pdf_to_docx(self, input_path, output_path):
         cv = Converter(input_path)
@@ -392,6 +393,48 @@ class FileConverterService:
         
         c.save()
         return output_path
+    
+        # Excel'den XML'e dönüşüm
+    def excel_to_xml(self, input_path, output_path):
+        try:
+            # Excel dosyasını oku
+            df = pd.read_excel(input_path)
+            
+            # Kök XML elementini oluştur
+            root = Element('root')
+            
+            # Her satırı XML'e dönüştür
+            for _, row in df.iterrows():
+                row_element = SubElement(root, 'row')
+                
+                # Her kolonu XML alt elementi olarak ekle
+                for col_name, value in row.items():
+                    # NaN değerlerini atla
+                    if pd.isna(value):
+                        continue
+                        
+                    # Kolon adını geçerli XML etiketi haline getir (boşluk ve özel karakterleri değiştir)
+                    col_name = ''.join(c if c.isalnum() else '_' for c in str(col_name))
+                    if col_name[0].isdigit():
+                        col_name = 'f_' + col_name
+                        
+                    # Elementi oluştur ve metin değerini ayarla
+                    col_element = SubElement(row_element, col_name)
+                    col_element.text = str(value)
+            
+            # XML dizesini güzel formatlı olarak oluştur
+            rough_string = tostring(root, 'utf-8')
+            reparsed = xml.dom.minidom.parseString(rough_string)
+            pretty_xml = reparsed.toprettyxml(indent="  ")
+            
+            # Dosyaya yaz
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(pretty_xml)
+                
+            return output_path
+            
+        except Exception as e:
+            raise Exception(f"Excel'den XML'e dönüşüm sırasında hata oluştu: {str(e)}")
 
 # Flask uygulaması oluştur
 app = Flask(__name__, static_folder='static', static_url_path='')
@@ -429,12 +472,12 @@ def convert_file():
         
         # Format isimlerini dosya uzantılarına eşle
         ext_map = {
-            'excel': 'xlsx',
-            'docx': 'docx',
-            'pdf': 'pdf',
-            'json': 'json',
+        'excel': 'xlsx',
+        'docx': 'docx',
+        'pdf': 'pdf',
+        'json': 'json',
+        'xml': 'xml',  
         }
-        
         if output_ext in ext_map:
             output_ext = ext_map[output_ext]
         

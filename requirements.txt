@@ -5,3 +5,5 @@ python-docx
 reportlab
 pdf2docx
 docx2pdf
+openpyxl
+argparse

@@ -289,6 +289,7 @@
                             <option value="excel_to_json">Excel'den JSON'a</option>
                             <option value="excel_to_docx">Excel'den DOCX'e</option>
                             <option value="excel_to_pdf">Excel'den PDF'e</option>
+                            <option value="excel_to_xml">Excel'den XML'e</option>
                         </optgroup>
                         
                         <optgroup label="CSV Dönüşümleri">
@@ -366,13 +367,11 @@
                 validateForm();
             }
             
-            // Update file info when file is selected
             fileInput.addEventListener('change', function() {
                 updateFileInfo();
                 validateForm();
             });
             
-            // Update conversion type validation when changed
             conversionType.addEventListener('change', function() {
                 validateForm();
             });
@@ -412,7 +411,8 @@
                     'docx': ['docx', 'doc'],
                     'json': ['json'],
                     'excel': ['xlsx', 'xls'],
-                    'csv': ['csv']
+                    'csv': ['csv'],
+                    'xml' : ['xml']
                 };
                 
                 if (!formatMappings[sourceFormat].includes(fileExt)) {
