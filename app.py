@@ -16,6 +16,8 @@ from docx2pdf import convert
 import subprocess
 from xml.etree.ElementTree import Element, SubElement, tostring
 import xml.dom.minidom
+from PIL import Image  # Pillow kütüphanesinden
+import PyPDF2  # PyPDF2 kütüphanesinden
 
 # PAKET DÖNÜŞÜMLERİNDE KENDİ LOKALİMDE FARKLI LINUX DA FARKLI PAKET KULLANIYORUM DİKKAT ET
 
@@ -34,7 +36,10 @@ class FileConverterService:
             'excel_to_docx',
             'excel_to_pdf',
             'csv_to_excel',
-            'excel_to_xml',  
+            'excel_to_xml',
+            'png_to_pdf',  # Yeni eklenen dönüşüm türleri
+            'jpg_to_pdf',
+            'merge_pdfs'
         ]
     # PDF'den DOCX'e dönüşüm
     def pdf_to_docx(self, input_path, output_path):
@@ -395,6 +400,8 @@ class FileConverterService:
         return output_path
     
         # Excel'den XML'e dönüşüm
+
+    # Excel'den XML'e dönüşüm
     def excel_to_xml(self, input_path, output_path):
         try:
             # Excel dosyasını oku
@@ -436,6 +443,97 @@ class FileConverterService:
         except Exception as e:
             raise Exception(f"Excel'den XML'e dönüşüm sırasında hata oluştu: {str(e)}")
 
+    # PNG'den PDF'e dönüşüm
+    def png_to_pdf(self, input_path, output_path):
+        try:
+            # Resmi aç
+            image = Image.open(input_path)
+            
+            # PDF oluştur
+            c = canvas.Canvas(output_path, pagesize=letter)
+            
+            # Resmin boyutlarını al
+            img_width, img_height = image.size
+            
+            # Resmi PDF sayfasına sığdır
+            page_width, page_height = letter
+            width_ratio = page_width / img_width
+            height_ratio = page_height / img_height
+            scale_ratio = min(width_ratio, height_ratio) * 0.9  # %90 oranında küçült
+            
+            new_width = img_width * scale_ratio
+            new_height = img_height * scale_ratio
+            
+            # Resmi ortalamak için koordinatları hesapla
+            x_centered = (page_width - new_width) / 2
+            y_centered = (page_height - new_height) / 2
+            
+            # Resmi PDF'e ekle
+            c.drawImage(input_path, x_centered, y_centered, width=new_width, height=new_height)
+            
+            c.save()
+            return output_path
+        except Exception as e:
+            raise Exception(f"PNG'den PDF'e dönüşüm sırasında hata oluştu: {str(e)}")
+   
+    # PDF dosyalarını birleştirme
+    def merge_pdfs(self, input_paths, output_path):
+        try:
+            # PDF birleştirici oluştur
+            merger = PyPDF2.PdfMerger()
+            
+            # Her PDF dosyasını ekle
+            for pdf_path in input_paths:
+                # PDF dosyasını kontrol et
+                if not os.path.exists(pdf_path):
+                    raise FileNotFoundError(f"PDF dosyası bulunamadı: {pdf_path}")
+
+                with open(pdf_path, 'rb') as f:
+                    merger.append(f)
+            
+            # Birleştirilmiş PDF'i kaydet
+            with open(output_path, 'wb') as f:
+                merger.write(f)
+            
+            merger.close()
+            return output_path
+        except Exception as e:
+            raise Exception(f"PDF birleştirme sırasında hata oluştu: {str(e)}")
+    
+    # JPG'den PDF'e dönüşüm
+    def jpg_to_pdf(self, input_path, output_path):
+        try:
+            # Resmi aç
+            image = Image.open(input_path)
+            
+            # PDF oluştur
+            c = canvas.Canvas(output_path, pagesize=letter)
+            
+            # Resmin boyutlarını al
+            img_width, img_height = image.size
+            
+            # Resmi PDF sayfasına sığdır
+            page_width, page_height = letter
+            width_ratio = page_width / img_width
+            height_ratio = page_height / img_height
+            scale_ratio = min(width_ratio, height_ratio) * 0.9  # %90 oranında küçült
+            
+            new_width = img_width * scale_ratio
+            new_height = img_height * scale_ratio
+            
+            # Resmi ortalamak için koordinatları hesapla
+            x_centered = (page_width - new_width) / 2
+            y_centered = (page_height - new_height) / 2
+            
+            # Resmi PDF'e ekle
+            c.drawImage(input_path, x_centered, y_centered, width=new_width, height=new_height)
+            
+            c.save()
+            return output_path
+        except Exception as e:
+            raise Exception(f"JPG'den PDF'e dönüşüm sırasında hata oluştu: {str(e)}")
+
+
 # Flask uygulaması oluştur
 app = Flask(__name__, static_folder='static', static_url_path='')
 
@@ -452,7 +550,46 @@ def index():
 def convert_file():
     temp_dir = None
     try:
-        # İstekte dosya olup olmadığını kontrol et
+        # PDF birleştirme için özel kontrol
+        if request.form.get('conversionType') == 'merge_pdfs':
+            # Birden fazla dosya kontrolü
+            if 'files' not in request.files:
+                return jsonify({'error': 'PDF dosyaları bulunamadı'}), 400
+            
+            files = request.files.getlist('files')
+            if len(files) < 2:
+                return jsonify({'error': 'En az 2 PDF dosyası gereklidir'}), 400
+            
+            # Geçici dizin oluştur
+            temp_dir = tempfile.mkdtemp()
+            input_paths = []
+            
+            # Dosyaları kaydet
+            for file in files:
+                input_path = os.path.join(temp_dir, secure_filename(file.filename))
+                file.save(input_path)
+                input_paths.append(input_path)
+            
+            # Çıkış dosyası yolu
+            output_path = os.path.join(temp_dir, "merged.pdf")
+            
+            # Birleştirme metodunu çağır
+            converter_service.merge_pdfs(input_paths, output_path)
+            
+            # Dosyayı gönder
+            with open(output_path, 'rb') as f:
+                file_data = f.read()
+            
+            file_stream = BytesIO(file_data)
+            
+            return send_file(
+                file_stream,
+                as_attachment=True,
+                download_name="merged.pdf",
+                mimetype='application/pdf'
+            )
+
+        # Mevcut dönüşüm kodları (değişmeyecek)
         if 'file' not in request.files:
             return jsonify({'error': 'Dosya bulunamadı'}), 400
         
@@ -476,7 +613,9 @@ def convert_file():
         'docx': 'docx',
         'pdf': 'pdf',
         'json': 'json',
-        'xml': 'xml',  
+        'xml': 'xml',
+        'png': 'png',
+        'jpg': 'jpg'
         }
         if output_ext in ext_map:
             output_ext = ext_map[output_ext]

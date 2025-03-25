@@ -4,233 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dosya Dönüştürücü</title>
-    <style>
-        :root {
-            --primary-color: #222222;
-            --secondary-color: #444444;
-            --accent-color: #666666;
-            --light-bg: #f5f5f5;
-            --border-color: #e0e0e0;
-            --text-color: #333;
-            --error-color: #ef4444;
-            --success-color: #10b981;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background-color: var(--light-bg);
-            padding: 0;
-            margin: 0;
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 1rem 0;
-        }
-        
-        header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        
-        main {
-            padding: 2rem 0;
-        }
-        
-        .converter-card {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 1px solid var(--border-color);
-        }
-        
-        h1 {
-            margin-bottom: 1.5rem;
-            color: var(--primary-color);
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .file-upload {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 2rem;
-            background-color: var(--light-bg);
-            position: relative;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .file-upload:hover {
-            border-color: var(--secondary-color);
-        }
-        
-        .file-upload.drag-over {
-            background-color: rgba(68, 68, 68, 0.1);
-            border-color: var(--secondary-color);
-        }
-        
-        .file-upload input {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-        
-        .file-upload-icon {
-            font-size: 3rem;
-            color: var(--secondary-color);
-            margin-bottom: 1rem;
-        }
-        
-        .file-info {
-            margin-top: 1rem;
-            display: none;
-        }
-        
-        .file-info.active {
-            display: block;
-        }
-        
-        select {
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            font-size: 1rem;
-            background-color: white;
-            color: var(--text-color);
-        }
-        
-        optgroup {
-            font-weight: bold;
-        }
-        
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        button:hover {
-            background-color: #333333;
-        }
-        
-        button:disabled {
-            background-color: #a8a8a8;
-            cursor: not-allowed;
-        }
-        
-        button svg {
-            margin-right: 0.5rem;
-        }
-        
-        #result {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1.5rem;
-            display: none;
-        }
-        
-        #result.success {
-            background-color: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--success-color);
-            color: var(--success-color);
-            display: block;
-        }
-        
-        #result.error {
-            background-color: rgba(239, 68, 68, 0.1);
-            border: 1px solid var(--error-color);
-            color: var(--error-color);
-            display: block;
-        }
-        
-        #result.loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(34, 34, 34, 0.1);
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-        }
-        
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border-left-color: var(--primary-color);
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        footer {
-            background-color: var(--primary-color);
-            color: white;
-            text-align: center;
-            padding: 1rem 0;
-            margin-top: 2rem;
-        }
-        
-        @media (max-width: 768px) {
-            .converter-card {
-                padding: 1.5rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
@@ -271,6 +45,8 @@
                         
                         <optgroup label="PDF Dönüşümleri">
                             <option value="pdf_to_docx">PDF'den DOCX'e</option>
+                            <option value="png_to_pdf">PNG'den PDF'e</option>
+                            <option value="jpg_to_pdf">JPG'den PDF'e</option>
                         </optgroup>
                         
                         <optgroup label="DOCX Dönüşümleri">
@@ -295,10 +71,29 @@
                         <optgroup label="CSV Dönüşümleri">
                             <option value="csv_to_excel">CSV'den Excel'e</option>
                         </optgroup>
+
+                        <optgroup label="PDF Birleştirme">
+                            <option value="merge_pdfs">PDF Dosyalarını Birleştir</option>
+                        </optgroup>
                         
                     </select>
                 </div>
-                
+                <div id="pdfMergeSection" style="display: none;">
+                    <div class="form-group">
+                        <label>PDF Dosyaları Seçin:</label>
+                        <div class="multi-file-upload" id="multiFileUpload">
+                            <input type="file" id="pdfFiles" name="files" multiple accept=".pdf">
+                            <div class="file-upload-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                            </div>
+                            <p>PDF dosyalarını seçmek için tıklayın</p>
+                            <div class="multi-file-list" id="pdfFileList"></div>
+                        </div>
+                    </div>
+                </div>                
                 <button type="submit" id="convertButton" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="1 4 1 10 7 10"></polyline>
@@ -319,156 +114,6 @@
         </div>
     </footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('file');
-            const fileUpload = document.getElementById('fileUpload');
-            const fileInfo = document.getElementById('fileInfo');
-            const fileName = document.getElementById('fileName');
-            const fileSize = document.getElementById('fileSize');
-            const conversionType = document.getElementById('conversionType');
-            const convertButton = document.getElementById('convertButton');
-            const convertForm = document.getElementById('convertForm');
-            const resultDiv = document.getElementById('result');
-            
-            // File drag and drop functionality
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                fileUpload.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                fileUpload.addEventListener(eventName, highlight, false);
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                fileUpload.addEventListener(eventName, unhighlight, false);
-            });
-            
-            function highlight() {
-                fileUpload.classList.add('drag-over');
-            }
-            
-            function unhighlight() {
-                fileUpload.classList.remove('drag-over');
-            }
-            
-            fileUpload.addEventListener('drop', handleDrop, false);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                fileInput.files = files;
-                updateFileInfo();
-                validateForm();
-            }
-            
-            fileInput.addEventListener('change', function() {
-                updateFileInfo();
-                validateForm();
-            });
-            
-            conversionType.addEventListener('change', function() {
-                validateForm();
-            });
-            
-            function updateFileInfo() {
-                if (fileInput.files.length > 0) {
-                    const file = fileInput.files[0];
-                    fileName.textContent = file.name;
-                    fileSize.textContent = formatFileSize(file.size);
-                    fileInfo.classList.add('active');
-                } else {
-                    fileInfo.classList.remove('active');
-                }
-            }
-            
-            function formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            }
-            
-            function validateForm() {
-                if (fileInput.files.length === 0 || !conversionType.value) {
-                    convertButton.disabled = true;
-                    resultDiv.style.display = 'none';
-                    return;
-                }
-                
-                const file = fileInput.files[0];
-                const fileExt = file.name.split('.').pop().toLowerCase();
-                const sourceFormat = conversionType.value.split('_to_')[0];
-                
-                const formatMappings = {
-                    'pdf': ['pdf'],
-                    'docx': ['docx', 'doc'],
-                    'json': ['json'],
-                    'excel': ['xlsx', 'xls'],
-                    'csv': ['csv'],
-                    'xml' : ['xml']
-                };
-                
-                if (!formatMappings[sourceFormat].includes(fileExt)) {
-                    resultDiv.className = 'error';
-                    resultDiv.innerHTML = `Hata: Bu dönüşüm için ${formatMappings[sourceFormat].join(' veya ')} uzantılı bir dosya seçmelisiniz.`;
-                    convertButton.disabled = true;
-                } else {
-                    resultDiv.style.display = 'none';
-                    convertButton.disabled = false;
-                }
-            }
-            
-            // Form submission
-            convertForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const form = new FormData(this);
-                
-                // Show loading indicator
-                resultDiv.className = 'loading';
-                resultDiv.innerHTML = '<div class="loading-spinner"></div> Dönüştürülüyor...';
-                
-                fetch('/api/convert', {
-                    method: 'POST',
-                    body: form
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.blob();
-                    }
-                    return response.json().then(err => {
-                        throw new Error(err.error || 'Bir hata oluştu');
-                    });
-                })
-                .then(blob => {
-                    const targetFormat = conversionType.value.split('_to_')[1];
-                    let extension = targetFormat;
-                    if (targetFormat === 'excel') extension = 'xlsx';
-                    
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileInput.files[0].name.split('.')[0] + '.' + extension;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    
-                    resultDiv.className = 'success';
-                    resultDiv.innerHTML = 'Dönüşüm başarıyla tamamlandı! Dosyanız indirildi.';
-                })
-                .catch(error => {
-                    resultDiv.className = 'error';
-                    resultDiv.innerHTML = 'Hata: ' + error.message;
-                });
-            });
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
