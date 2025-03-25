@@ -223,3 +223,58 @@ footer {
         padding: 1.5rem;
     }
 }
+
+/* Çoklu dosya yükleme stilleri */
+.multi-file-upload {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: var(--light-bg);
+    position: relative;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.multi-file-upload:hover {
+    border-color: var(--secondary-color);
+}
+
+.multi-file-list {
+    margin-top: 1rem;
+}
+
+.multi-file-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.remove-file {
+    cursor: pointer;
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.remove-file:hover {
+    color: darkred;
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 600px) {
+    .converter-card {
+        padding: 1rem;
+    }
+    
+    .file-upload, .multi-file-upload {
+        padding: 1rem;
+    }
+    
+    button {
+        width: 100%;
+        padding: 1rem;
+    }
+}

@@ -479,15 +479,15 @@ class FileConverterService:
     # PDF dosyalarını birleştirme
     def merge_pdfs(self, input_paths, output_path):
         try:
-            # PDF birleştirici oluştur
+            # PDF birleştirici oluştur (PyPDF2'nin yeni sürümü için)
             merger = PyPDF2.PdfMerger()
             
             # Her PDF dosyasını ekle
             for pdf_path in input_paths:
-                # PDF dosyasını kontrol et
                 if not os.path.exists(pdf_path):
                     raise FileNotFoundError(f"PDF dosyası bulunamadı: {pdf_path}")
-
+                
+                # Dosyayı binary modda aç
                 with open(pdf_path, 'rb') as f:
                     merger.append(f)
             
@@ -495,10 +495,12 @@ class FileConverterService:
             with open(output_path, 'wb') as f:
                 merger.write(f)
             
-            merger.close()
             return output_path
         except Exception as e:
             raise Exception(f"PDF birleştirme sırasında hata oluştu: {str(e)}")
+        finally:
+            if 'merger' in locals():
+                merger.close()
     
     # JPG'den PDF'e dönüşüm
     def jpg_to_pdf(self, input_path, output_path):
@@ -552,7 +554,6 @@ def convert_file():
     try:
         # PDF birleştirme için özel kontrol
         if request.form.get('conversionType') == 'merge_pdfs':
-            # Birden fazla dosya kontrolü
             if 'files' not in request.files:
                 return jsonify({'error': 'PDF dosyaları bulunamadı'}), 400
             
@@ -564,8 +565,11 @@ def convert_file():
             temp_dir = tempfile.mkdtemp()
             input_paths = []
             
-            # Dosyaları kaydet
+            # Dosyaları kaydet ve PDF olduklarını kontrol et
             for file in files:
+                if not file.filename.lower().endswith('.pdf'):
+                    return jsonify({'error': 'Sadece PDF dosyaları yükleyebilirsiniz'}), 400
+                
                 input_path = os.path.join(temp_dir, secure_filename(file.filename))
                 file.save(input_path)
                 input_paths.append(input_path)
@@ -577,13 +581,8 @@ def convert_file():
             converter_service.merge_pdfs(input_paths, output_path)
             
             # Dosyayı gönder
-            with open(output_path, 'rb') as f:
-                file_data = f.read()
-            
-            file_stream = BytesIO(file_data)
-            
             return send_file(
-                file_stream,
+                output_path,
                 as_attachment=True,
                 download_name="merged.pdf",
                 mimetype='application/pdf'

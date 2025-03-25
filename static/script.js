@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Element seçiciler
     const fileInput = document.getElementById('file');
     const fileUpload = document.getElementById('fileUpload');
     const fileInfo = document.getElementById('fileInfo');
@@ -8,13 +9,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const convertButton = document.getElementById('convertButton');
     const convertForm = document.getElementById('convertForm');
     const resultDiv = document.getElementById('result');
-    
-    // PDF Merge Related Elements
     const pdfMergeSection = document.getElementById('pdfMergeSection');
     const pdfFilesInput = document.getElementById('pdfFiles');
     const pdfFileList = document.getElementById('pdfFileList');
 
-    // Updated Format Mappings to include jpg and png
+    // Format eşleştirmeleri
     const formatMappings = {
         'pdf': ['pdf'],
         'docx': ['docx', 'doc'],
@@ -25,51 +24,41 @@ document.addEventListener('DOMContentLoaded', function() {
         'csv': ['csv'],
         'xml': ['xml']
     };
-    
-    // Conversion Type Change Handler
+
+    // Dönüşüm türü değiştiğinde
     conversionType.addEventListener('change', function() {
-        // Reset form
-        fileInput.value = '';
-        fileInfo.classList.remove('active');
-        resultDiv.style.display = 'none';
+        const isMergePdf = this.value === 'merge_pdfs';
+        pdfMergeSection.style.display = isMergePdf ? 'block' : 'none';
+        fileUpload.style.display = isMergePdf ? 'none' : 'block';
         
-        // Handle PDF Merge Section Visibility
-        if (this.value === 'merge_pdfs') {
-            pdfMergeSection.style.display = 'block';
-            fileUpload.style.display = 'none';
-            convertButton.disabled = true;
-        } else {
-            pdfMergeSection.style.display = 'none';
-            fileUpload.style.display = 'block';
+        if (!isMergePdf) {
+            fileInput.value = '';
+            updateFileInfo();
         }
         
         validateForm();
     });
-    
-    // PDF Merge File Selection
+
+    // PDF birleştirme dosya seçimi
     pdfFilesInput.addEventListener('change', function() {
-        pdfFileList.innerHTML = ''; // Clear previous list
+        pdfFileList.innerHTML = '';
         
         if (this.files.length < 2) {
-            convertButton.disabled = true;
-            resultDiv.className = 'error';
-            resultDiv.innerHTML = 'En az 2 PDF dosyası seçmelisiniz.';
+            showError('En az 2 PDF dosyası seçmelisiniz.');
             return;
         }
         
-        // Validate PDF files
+        // PDF doğrulama
         const invalidFiles = Array.from(this.files).filter(file => 
             !file.name.toLowerCase().endsWith('.pdf')
         );
         
         if (invalidFiles.length > 0) {
-            convertButton.disabled = true;
-            resultDiv.className = 'error';
-            resultDiv.innerHTML = 'Sadece PDF dosyaları seçilebilir.';
+            showError('Sadece PDF dosyaları seçilebilir.');
             return;
         }
         
-        // Create file list
+        // Dosya listesi oluştur
         Array.from(this.files).forEach((file, index) => {
             const fileItem = document.createElement('div');
             fileItem.className = 'multi-file-item';
@@ -80,81 +69,74 @@ document.addEventListener('DOMContentLoaded', function() {
             pdfFileList.appendChild(fileItem);
         });
         
-        // Remove file functionality
+        // Dosya kaldırma işlevselliği
         document.querySelectorAll('.remove-file').forEach(removeBtn => {
             removeBtn.addEventListener('click', function() {
-                const index = this.getAttribute('data-index');
-                const dt = new DataTransfer();
+                const index = parseInt(this.getAttribute('data-index'));
+                const newFiles = Array.from(pdfFilesInput.files);
+                newFiles.splice(index, 1);
                 
-                // Re-add files except the removed one
-                for (let i = 0; i < pdfFilesInput.files.length; i++) {
-                    if (i != index) {
-                        dt.items.add(pdfFilesInput.files[i]);
-                    }
-                }
+                const dataTransfer = new DataTransfer();
+                newFiles.forEach(file => dataTransfer.items.add(file));
+                pdfFilesInput.files = dataTransfer.files;
                 
-                pdfFilesInput.files = dt.files;
                 this.closest('.multi-file-item').remove();
                 
-                // Re-validate
                 if (pdfFilesInput.files.length < 2) {
-                    convertButton.disabled = true;
-                    resultDiv.className = 'error';
-                    resultDiv.innerHTML = 'En az 2 PDF dosyası seçmelisiniz.';
+                    showError('En az 2 PDF dosyası seçmelisiniz.');
+                } else {
+                    clearError();
                 }
             });
         });
         
-        // Enable convert button
         convertButton.disabled = false;
-        resultDiv.style.display = 'none';
+        clearError();
     });
 
-    // File drag and drop functionality
+    // Dosya sürükle-bırak işlevselliği
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         fileUpload.addEventListener(eventName, preventDefaults, false);
     });
-    
+
     function preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
     }
-    
+
     ['dragenter', 'dragover'].forEach(eventName => {
         fileUpload.addEventListener(eventName, highlight, false);
     });
-    
+
     ['dragleave', 'drop'].forEach(eventName => {
         fileUpload.addEventListener(eventName, unhighlight, false);
     });
-    
+
     function highlight() {
         fileUpload.classList.add('drag-over');
     }
-    
+
     function unhighlight() {
         fileUpload.classList.remove('drag-over');
     }
-    
+
     fileUpload.addEventListener('drop', handleDrop, false);
-    
+
     function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        fileInput.files = files;
-        updateFileInfo();
-        validateForm();
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            updateFileInfo();
+            validateForm();
+        }
     }
-    
+
+    // Dosya seçimi değiştiğinde
     fileInput.addEventListener('change', function() {
         updateFileInfo();
         validateForm();
     });
-    
-    conversionType.addEventListener('change', function() {
-        validateForm();
-    });
-    
+
     function updateFileInfo() {
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
@@ -165,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fileInfo.classList.remove('active');
         }
     }
-    
+
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -173,87 +155,104 @@ document.addEventListener('DOMContentLoaded', function() {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-    
+
     function validateForm() {
-        if (fileInput.files.length === 0 || !conversionType.value) {
-            convertButton.disabled = true;
-            resultDiv.style.display = 'none';
+        if (conversionType.value === 'merge_pdfs') {
+            convertButton.disabled = pdfFilesInput.files.length < 2;
             return;
         }
-        
+
+        if (fileInput.files.length === 0 || !conversionType.value) {
+            convertButton.disabled = true;
+            return;
+        }
+
         const file = fileInput.files[0];
         const fileExt = file.name.split('.').pop().toLowerCase();
         const sourceFormat = conversionType.value.split('_to_')[0];
         
-        if (!formatMappings[sourceFormat].includes(fileExt)) {
-            resultDiv.className = 'error';
-            resultDiv.innerHTML = `Hata: Bu dönüşüm için ${formatMappings[sourceFormat].join(' veya ')} uzantılı bir dosya seçmelisiniz.`;
+        if (!formatMappings[sourceFormat] || !formatMappings[sourceFormat].includes(fileExt)) {
+            showError(`Hata: Bu dönüşüm için ${formatMappings[sourceFormat]?.join(' veya ')} uzantılı bir dosya seçmelisiniz.`);
             convertButton.disabled = true;
         } else {
-            resultDiv.style.display = 'none';
+            clearError();
             convertButton.disabled = false;
         }
     }
-    
-    // Form submission
-    convertForm.addEventListener('submit', function(e) {
+
+    function showError(message) {
+        resultDiv.className = 'error';
+        resultDiv.innerHTML = message;
+        resultDiv.style.display = 'block';
+    }
+
+    function clearError() {
+        resultDiv.style.display = 'none';
+    }
+
+    // Form gönderimi
+    convertForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const form = new FormData(this);
+        const formData = new FormData(this);
+        const conversionValue = conversionType.value;
         
-        // Show loading indicator
+        // Yükleme göstergesi
         resultDiv.className = 'loading';
         resultDiv.innerHTML = '<div class="loading-spinner"></div> Dönüştürülüyor...';
-        
-        // Special handling for PDF merge
-        if (conversionType.value === 'merge_pdfs') {
-            // Use pdfFilesInput for multiple files
-            const dt = pdfFilesInput.files;
-            form.delete('file');
-            for (let i = 0; i < dt.length; i++) {
-                form.append('files', dt[i]);
+        resultDiv.style.display = 'block';
+
+        try {
+            // PDF birleştirme için özel işlem
+            if (conversionValue === 'merge_pdfs') {
+                const files = pdfFilesInput.files;
+                if (files.length < 2) {
+                    throw new Error('En az 2 PDF dosyası seçmelisiniz.');
+                }
+                
+                formData.delete('file');
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
             }
-        }
-        
-        fetch('/api/convert', {
-            method: 'POST',
-            body: form
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.blob();
-            }
-            return response.json().then(err => {
-                throw new Error(err.error || 'Bir hata oluştu');
+
+            const response = await fetch('/api/convert', {
+                method: 'POST',
+                body: formData
             });
-        })
-        .then(blob => {
-            const targetFormat = conversionType.value === 'merge_pdfs' 
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Bir hata oluştu');
+            }
+
+            const blob = await response.blob();
+            const targetFormat = conversionValue === 'merge_pdfs' 
                 ? 'pdf' 
-                : conversionType.value.split('_to_')[1];
+                : conversionValue.split('_to_')[1];
             
-            let extension = targetFormat;
-            if (targetFormat === 'excel') extension = 'xlsx';
-            
+            const extension = targetFormat === 'excel' ? 'xlsx' : targetFormat;
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             
-            // Handle filename for merged PDFs or conversions
-            a.download = conversionType.value === 'merge_pdfs' 
+            a.download = conversionValue === 'merge_pdfs' 
                 ? 'merged.pdf' 
                 : fileInput.files[0].name.split('.')[0] + '.' + extension;
             
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
-            
-            resultDiv.className = 'success';
-            resultDiv.innerHTML = 'Dönüşüm başarıyla tamamlandı! Dosyanız indirildi.';
-        })
-        .catch(error => {
-            resultDiv.className = 'error';
-            resultDiv.innerHTML = 'Hata: ' + error.message;
-        });
+
+            showSuccess('Dönüşüm başarıyla tamamlandı! Dosyanız indirildi.');
+        } catch (error) {
+            showError('Hata: ' + error.message);
+        }
     });
+
+    function showSuccess(message) {
+        resultDiv.className = 'success';
+        resultDiv.innerHTML = message;
+        resultDiv.style.display = 'block';
+    }
 });
