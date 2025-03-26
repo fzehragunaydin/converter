@@ -479,16 +479,27 @@ class FileConverterService:
     # PDF dosyalarını birleştirme
     def merge_pdfs(self, input_paths, output_path):
         try:
-            # PDF birleştirici oluştur (PyPDF2'nin yeni sürümü için)
+            # PDF birleştirici oluştur
             merger = PyPDF2.PdfMerger()
             
-            # Her PDF dosyasını ekle
+            # Benzersiz dosya içeriklerini kontrol etmek için
+            seen_hashes = set()
+            
             for pdf_path in input_paths:
                 if not os.path.exists(pdf_path):
                     raise FileNotFoundError(f"PDF dosyası bulunamadı: {pdf_path}")
                 
-                # Dosyayı binary modda aç
+                # Dosya içeriğinin hash'ini al
                 with open(pdf_path, 'rb') as f:
+                    file_hash = hash(f.read())
+                    
+                    # Eğer bu hash daha önce görülmüşse atla
+                    if file_hash in seen_hashes:
+                        print(f"Uyarı: Yinelenen içerik atlandı: {pdf_path}")
+                        continue
+                        
+                    seen_hashes.add(file_hash)
+                    f.seek(0)  # Dosya pozisyonunu sıfırla
                     merger.append(f)
             
             # Birleştirilmiş PDF'i kaydet
@@ -552,7 +563,6 @@ def index():
 def convert_file():
     temp_dir = None
     try:
-        # PDF birleştirme için özel kontrol
         if request.form.get('conversionType') == 'merge_pdfs':
             if 'files' not in request.files:
                 return jsonify({'error': 'PDF dosyaları bulunamadı'}), 400
@@ -565,12 +575,15 @@ def convert_file():
             temp_dir = tempfile.mkdtemp()
             input_paths = []
             
-            # Dosyaları kaydet ve PDF olduklarını kontrol et
-            for file in files:
+            # Dosyaları kaydet ve benzersiz isimler oluştur
+            for i, file in enumerate(files):
                 if not file.filename.lower().endswith('.pdf'):
                     return jsonify({'error': 'Sadece PDF dosyaları yükleyebilirsiniz'}), 400
                 
-                input_path = os.path.join(temp_dir, secure_filename(file.filename))
+                # Dosya adını ve zaman damgasını kullanarak benzersiz isim oluştur
+                timestamp = int(time.time() * 1000)
+                unique_name = f"{timestamp}_{i}_{secure_filename(file.filename)}"
+                input_path = os.path.join(temp_dir, unique_name)
                 file.save(input_path)
                 input_paths.append(input_path)
             
@@ -588,59 +601,48 @@ def convert_file():
                 mimetype='application/pdf'
             )
 
-        # Mevcut dönüşüm kodları (değişmeyecek)
+        # Diğer dönüşüm türleri için mevcut kod
         if 'file' not in request.files:
             return jsonify({'error': 'Dosya bulunamadı'}), 400
         
         file = request.files['file']
         conversion_type = request.form.get('conversionType')
         
-        # Girişleri doğrula
         if file.filename == '':
             return jsonify({'error': 'Dosya seçilmedi'}), 400
         
         if conversion_type not in converter_service.supported_conversions:
             return jsonify({'error': 'Desteklenmeyen dönüşüm türü'}), 400
         
-        # Giriş ve çıkış yollarını oluştur
         input_ext = file.filename.split('.')[-1].lower()
         output_ext = conversion_type.split('_to_')[1]
         
-        # Format isimlerini dosya uzantılarına eşle
         ext_map = {
-        'excel': 'xlsx',
-        'docx': 'docx',
-        'pdf': 'pdf',
-        'json': 'json',
-        'xml': 'xml',
-        'png': 'png',
-        'jpg': 'jpg'
+            'excel': 'xlsx',
+            'docx': 'docx',
+            'pdf': 'pdf',
+            'json': 'json',
+            'xml': 'xml',
+            'png': 'png',
+            'jpg': 'jpg'
         }
         if output_ext in ext_map:
             output_ext = ext_map[output_ext]
         
-        # Geçici dizin oluştur
         temp_dir = tempfile.mkdtemp()
         input_path = os.path.join(temp_dir, f"input.{input_ext}")
         output_path = os.path.join(temp_dir, f"output.{output_ext}")
         
-        # Yüklenen dosyayı kaydet
         file.save(input_path)
         
-        # Dönüşüm metodunu al
         convert_method = getattr(converter_service, conversion_type)
-        
-        # Dönüşümü gerçekleştir
         convert_method(input_path, output_path)
         
-        # Çıkış dosyasını oku
         with open(output_path, 'rb') as f:
             file_data = f.read()
         
-        # Dosya akışı oluştur
         file_stream = BytesIO(file_data)
         
-        # Dönüştürülen dosyayı gönder
         return send_file(
             file_stream,
             as_attachment=True,
@@ -652,19 +654,15 @@ def convert_file():
         print(traceback.format_exc())  
         return jsonify({'error': f'Dönüşüm sırasında bir hata oluştu: {str(e)}'}), 500
     finally:
-        # Geçici dizini temizle
         if temp_dir and os.path.exists(temp_dir):
             try:
-                # Dosya işlemlerinin tamamlanması için bekle
                 time.sleep(0.5)
-                # Dizini kaldır
                 shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception as e:
                 print(f"Temizleme hatası: {str(e)}")
 
 @app.route('/kontrol')
 def create_static_folder():
-    """Eğer yoksa static klasörünü oluştur"""
     try:
         if not os.path.exists('static'):
             os.mkdir('static')
@@ -673,7 +671,6 @@ def create_static_folder():
         return f"Hata: {str(e)}", 500
 
 if __name__ == '__main__':
-    # Eğer yoksa static klasörü oluştur
     if not os.path.exists('static'):
         os.mkdir('static')
     app.run(debug=True, host='0.0.0.0', port=5000)
