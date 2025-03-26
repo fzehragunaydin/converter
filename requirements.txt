@@ -1,9 +1,13 @@
-Flask
-werkzeug
+flask
+gunicorn
 pandas
 python-docx
 reportlab
 pdf2docx
+Pillow
+PyPDF2
 docx2pdf
-openpyxl
-argparse
+werkzeug
+python-dateutil
+pytz
+lxml
