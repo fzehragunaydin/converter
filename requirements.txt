@@ -10,4 +10,5 @@ docx2pdf
 werkzeug
 python-dateutil
 pytz
+openpyxl
 lxml
