@@ -88,29 +88,28 @@ class FileConverterService:
     
     # CSV'den Excel'e dönüşüm
     def csv_to_excel(self, input_path, output_path):
-        try:
-            # CSV dosyasını oku (encoding ve ayırıcı karakteri otomatik tespit etmeye çalış)
             try:
-                # İlk olarak UTF-8 encoding ile dene
-                df = pd.read_csv(input_path, encoding='utf-8')
-            except UnicodeDecodeError:
-                # UTF-8 çalışmazsa ISO-8859-1 encoding ile dene
-                df = pd.read_csv(input_path, encoding='ISO-8859-1')
-            except Exception:
-                # Farklı ayırıcı karakteri olan CSV dosyalarını tespit et
+                # CSV dosyasını oku (encoding ve ayırıcı karakteri otomatik tespit etmeye çalış)
                 try:
-                    df = pd.read_csv(input_path, encoding='utf-8', sep=';')
-                except:
-                    df = pd.read_csv(input_path, encoding='ISO-8859-1', sep=';')
+                    # İlk olarak UTF-8 encoding ile dene
+                    df = pd.read_csv(input_path, encoding='utf-8')
+                except UnicodeDecodeError:
+                    # UTF-8 çalışmazsa ISO-8859-1 encoding ile dene
+                    df = pd.read_csv(input_path, encoding='ISO-8859-1')
+                except Exception:
+                    # Farklı ayırıcı karakteri olan CSV dosyalarını tespit et
+                    try:
+                        df = pd.read_csv(input_path, encoding='utf-8', sep=';')
+                    except:
+                        df = pd.read_csv(input_path, encoding='ISO-8859-1', sep=';')
+                
+                # Excel'e kaydet (xlsx formatında)
+                df.to_excel(output_path, index=False)
+                
+                return output_path
             
-            # Excel'e kaydet (varsayılan olarak ilk sayfa adı "CSV Data" olacak)
-            with pd.ExcelWriter(output_path) as writer:
-                df.to_excel(writer, sheet_name='CSV Data', index=False)
-            
-            return output_path
-        
-        except Exception as e:
-            raise Exception(f"CSV'den Excel'e dönüşüm sırasında hata oluştu: {str(e)}")
+            except Exception as e:
+                raise Exception(f"CSV'den Excel'e dönüşüm sırasında hata oluştu: {str(e)}")
     
     # DOCX'den JSON'a dönüşüm
     def docx_to_json(self, input_path, output_path):
@@ -241,55 +240,65 @@ class FileConverterService:
     
     # JSON'dan PDF'e dönüşüm
     def json_to_pdf(self, input_path, output_path):
-        # JSON dosyasını oku
-        with open(input_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        # PDF oluştur
-        c = canvas.Canvas(output_path, pagesize=letter)
-        width, height = letter
-        
-        # Başlık ekle
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(50, height - 50, "JSON Data")
-        
-        # JSON'ı string olarak formatla
-        json_str = json.dumps(data, indent=2, ensure_ascii=False)
-        lines = json_str.split('\n')
-        
-        # Her satırı PDF'e ekle
-        y_pos = height - 80
-        c.setFont("Helvetica", 12)
-        
-        for line in lines:
-            # Gerekirse yeni sayfa oluştur
-            if y_pos <= 50:
-                c.showPage()
-                y_pos = height - 50
+        try:
+            # JSON dosyasını oku
+            with open(input_path, 'r', encoding='utf-8') as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError as e:
+                    raise Exception(f"Geçersiz JSON formatı: {str(e)}")
             
-            c.drawString(50, y_pos, line)
-            y_pos -= 15
-        
-        c.save()
-        return output_path
+            # PDF oluştur
+            c = canvas.Canvas(output_path, pagesize=letter)
+            width, height = letter
+            
+            # Başlık ekle
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(50, height - 50, "JSON Data")
+            
+            # JSON'ı string olarak formatla
+            json_str = json.dumps(data, indent=2, ensure_ascii=False)
+            lines = json_str.split('\n')
+            
+            # Her satırı PDF'e ekle
+            y_pos = height - 80
+            c.setFont("Helvetica", 12)
+            
+            for line in lines:
+                # Gerekirse yeni sayfa oluştur
+                if y_pos <= 50:
+                    c.showPage()
+                    y_pos = height - 50
+                
+                c.drawString(50, y_pos, line)
+                y_pos -= 15
+            
+            c.save()
+            return output_path
+        except Exception as e:
+            raise Exception(f"JSON'dan PDF'e dönüşüm sırasında hata oluştu: {str(e)}")
     
     # Excel'den JSON'a dönüşüm
     def excel_to_json(self, input_path, output_path):
-        # Excel dosyasını UTF-8 ile okuma
-        excel = pd.ExcelFile(input_path, encoding='utf-8')
-        
-        # Sonuç sözlüğü oluştur
-        result = {}
-        
-        # Her sayfayı işle
-        for sheet in excel.sheet_names:
-            df = pd.read_excel(excel, sheet)
-            # Türkçe karakterleri koruyarak JSON'a dönüştür
-            result[sheet] = json.loads(df.to_json(orient='records', date_format='iso', force_ascii=False))
-        
-        # JSON dosyasına UTF-8 ile kaydet
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(result, f, indent=4, ensure_ascii=False)
+        try:
+            # Excel dosyasını okuma (encoding parametresi kaldırıldı)
+            excel = pd.ExcelFile(input_path)
+            result = {}
+            
+            # Her sayfayı işle
+            for sheet in excel.sheet_names:
+                df = pd.read_excel(excel, sheet)
+                # Türkçe karakterleri koruyarak JSON'a dönüştür
+                result[sheet] = json.loads(df.to_json(orient='records', date_format='iso', force_ascii=False))
+            
+            # JSON dosyasına UTF-8 ile kaydet
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=4, ensure_ascii=False)
+
+            return output_path
+            
+        except Exception as e:
+            raise Exception(f"Excel'den JSON'a dönüşüm sırasında hata oluştu: {str(e)}")
     
     # Excel'den DOCX'e dönüşüm
     def excel_to_docx(self, input_path, output_path):
@@ -615,19 +624,34 @@ def convert_file():
             return jsonify({'error': 'Desteklenmeyen dönüşüm türü'}), 400
         
         input_ext = file.filename.split('.')[-1].lower()
-        output_ext = conversion_type.split('_to_')[1]
+        print(f"Input filename: {file.filename}")
+        print(f"Input extension: {input_ext}")
+        print(f"Conversion type: {conversion_type}")
         
+        output_ext = conversion_type.split('_to_')[1]
         ext_map = {
-            'excel': 'xlsx',
+            'excel': 'xlsx',  
             'docx': 'docx',
             'pdf': 'pdf',
             'json': 'json',
             'xml': 'xml',
             'png': 'png',
-            'jpg': 'jpg'
+            'jpg': 'jpg',
+            'csv': 'xlsx',
+            'xlsx': 'xlsx'
         }
+        
         if output_ext in ext_map:
             output_ext = ext_map[output_ext]
+        
+        # Çıkış dosya adını düzelt
+        if output_ext == 'xlsx':
+            output_filename = f"{os.path.splitext(secure_filename(file.filename))[0]}.xlsx"
+        else:
+            output_filename = f"{os.path.splitext(secure_filename(file.filename))[0]}.{output_ext}"
+        
+        print(f"Output extension: {output_ext}")
+        print(f"Output filename: {output_filename}")
         
         temp_dir = tempfile.mkdtemp()
         input_path = os.path.join(temp_dir, f"input.{input_ext}")
@@ -642,12 +666,11 @@ def convert_file():
             file_data = f.read()
         
         file_stream = BytesIO(file_data)
-        
         return send_file(
             file_stream,
             as_attachment=True,
-            download_name=f"{os.path.splitext(secure_filename(file.filename))[0]}.{output_ext}",
-            mimetype='application/octet-stream'
+            download_name=output_filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' if output_ext == 'xlsx' else 'application/octet-stream'
         )
             
     except Exception as e:
